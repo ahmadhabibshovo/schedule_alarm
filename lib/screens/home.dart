@@ -9,6 +9,7 @@ import 'package:alarm_example/services/notifications.dart';
 import 'package:alarm_example/services/permission.dart';
 import 'package:alarm_example/widgets/tile.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const version = '5.1.4';
@@ -23,6 +24,7 @@ class ExampleAlarmHomeScreen extends StatefulWidget {
 class _ExampleAlarmHomeScreenState extends State<ExampleAlarmHomeScreen> {
   List<AlarmSettings> alarms = [];
   Notifications? notifications;
+  PermissionStatus _exactAlarmPermissionStatus = PermissionStatus.granted;
 
   static StreamSubscription<AlarmSet>? ringSubscription;
   static StreamSubscription<AlarmSet>? updateSubscription;
@@ -33,12 +35,21 @@ class _ExampleAlarmHomeScreenState extends State<ExampleAlarmHomeScreen> {
     AlarmPermissions.checkNotificationPermission().then(
       (_) => AlarmPermissions.checkAndroidScheduleExactAlarmPermission(),
     );
+    _checkExactAlarmPermission();
     unawaited(loadAlarms());
     ringSubscription ??= Alarm.ringing.listen(ringingAlarmsChanged);
     updateSubscription ??= Alarm.scheduled.listen((_) {
       unawaited(loadAlarms());
     });
     notifications = Notifications();
+  }
+
+  void _checkExactAlarmPermission() async {
+    final currentStatus =
+        await AlarmPermissions.getExactAlarmPermissionStatus();
+    setState(() {
+      _exactAlarmPermissionStatus = currentStatus;
+    });
   }
 
   Future<void> loadAlarms() async {
@@ -91,6 +102,70 @@ class _ExampleAlarmHomeScreenState extends State<ExampleAlarmHomeScreen> {
     super.dispose();
   }
 
+  Widget _buildPermissionStatusWidget() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: _exactAlarmPermissionStatus.isDenied
+            ? Colors.red.shade50
+            : Colors.green.shade50,
+        border: Border.all(
+          color: _exactAlarmPermissionStatus.isDenied
+              ? Colors.red.shade300
+              : Colors.green.shade300,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            _exactAlarmPermissionStatus.isDenied
+                ? Icons.warning_amber_rounded
+                : Icons.check_circle_rounded,
+            color: _exactAlarmPermissionStatus.isDenied
+                ? Colors.red.shade700
+                : Colors.green.shade700,
+            size: 32,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _exactAlarmPermissionStatus.isDenied
+                ? 'SCHEDULE_EXACT_ALARM is denied\n\nAlarms scheduling is not available'
+                : 'SCHEDULE_EXACT_ALARM is granted\n\nAlarms scheduling is available',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: _exactAlarmPermissionStatus.isDenied
+                      ? Colors.red.shade700
+                      : Colors.green.shade700,
+                ),
+          ),
+          if (_exactAlarmPermissionStatus.isDenied) ...[
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                await AlarmPermissions.requestExactAlarmPermission(
+                  onGrantedCallback: () => setState(() {
+                    _exactAlarmPermissionStatus = PermissionStatus.granted;
+                  }),
+                );
+                // Recheck permission status after request
+                _checkExactAlarmPermission();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Request exact alarm permission'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,6 +201,8 @@ class _ExampleAlarmHomeScreenState extends State<ExampleAlarmHomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Permission status widget
+            if (Alarm.android) _buildPermissionStatusWidget(),
             Expanded(
               child: alarms.isNotEmpty
                   ? ListView.separated(
