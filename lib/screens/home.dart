@@ -5,6 +5,8 @@ import 'package:alarm/utils/alarm_set.dart';
 import 'package:alarm_example/screens/edit_alarm.dart';
 import 'package:alarm_example/screens/ring.dart';
 import 'package:alarm_example/screens/shortcut_button.dart';
+import 'package:alarm_example/screens/alarm_manager_example.dart';
+import 'package:alarm_example/services/oneshot_alarm_manager.dart';
 import 'package:alarm_example/services/notifications.dart';
 import 'package:alarm_example/services/permission.dart';
 import 'package:alarm_example/widgets/tile.dart';
@@ -95,6 +97,81 @@ class _ExampleAlarmHomeScreenState extends State<ExampleAlarmHomeScreen> {
     await launchUrl(url);
   }
 
+  Future<void> navigateToAlarmManagerExample() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => const AlarmManagerHomePage(),
+      ),
+    );
+  }
+
+  /// Example methods using the OneShotAlarmManager singleton
+  
+  /// Schedule a quick 5-second one-shot alarm
+  Future<void> scheduleQuick5SecondAlarm() async {
+    final success = await OneShotAlarmManager.instance.scheduleQuick5Second(
+      tag: 'home_screen_5s',
+    );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success 
+              ? 'Quick 5-second alarm scheduled!' 
+              : 'Failed to schedule alarm. Check permissions.'
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  /// Schedule a quick 30-second one-shot alarm
+  Future<void> scheduleQuick30SecondAlarm() async {
+    final success = await OneShotAlarmManager.instance.scheduleQuick30Second(
+      tag: 'home_screen_30s',
+    );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success 
+              ? 'Quick 30-second alarm scheduled!' 
+              : 'Failed to schedule alarm. Check permissions.'
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  /// Schedule a custom duration one-shot alarm
+  Future<void> scheduleCustomAlarm(Duration duration) async {
+    final success = await OneShotAlarmManager.instance.scheduleOneShot(
+      duration: duration,
+      tag: 'home_screen_custom',
+    );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success 
+              ? 'Custom alarm scheduled for ${duration.inSeconds} seconds!' 
+              : 'Failed to schedule alarm. Check permissions.'
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     ringSubscription?.cancel();
@@ -172,6 +249,21 @@ class _ExampleAlarmHomeScreenState extends State<ExampleAlarmHomeScreen> {
       appBar: AppBar(
         title: const Text('alarm $version'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.timer),
+            onPressed: navigateToAlarmManagerExample,
+            tooltip: 'Alarm Manager Example',
+          ),
+          IconButton(
+            icon: const Icon(Icons.timer_3),
+            onPressed: scheduleQuick5SecondAlarm,
+            tooltip: 'Quick 5s OneShot',
+          ),
+          IconButton(
+            icon: const Icon(Icons.timer_10),
+            onPressed: scheduleQuick30SecondAlarm,
+            tooltip: 'Quick 30s OneShot',
+          ),
           IconButton(
             icon: const Icon(Icons.menu_book_rounded),
             onPressed: launchReadmeUrl,
