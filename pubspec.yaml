@@ -10,6 +10,7 @@ environment:
 dependencies:
 
   alarm: ^5.1.4
+  android_alarm_manager_plus: ^4.0.7
   cupertino_icons: ^1.0.8
   equatable: ^2.0.7
   flutter:
