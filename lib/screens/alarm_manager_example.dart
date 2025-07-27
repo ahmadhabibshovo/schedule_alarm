@@ -2,10 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:alarm/alarm.dart';
+import 'package:alarm/model/alarm_settings.dart';
+import 'package:alarm/model/notification_settings.dart';
+import 'package:alarm/model/volume_settings.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -71,6 +76,20 @@ class AlarmManagerHomePageState extends State<AlarmManagerHomePage> {
   @pragma('vm:entry-point')
   static Future<void> callback() async {
     developer.log('Alarm fired!');
+  final alarmSettings = AlarmSettings(
+      id: DateTime.now().millisecondsSinceEpoch % 10000,
+      dateTime: DateTime.now().add(const Duration(seconds: 5)),
+      assetAudioPath: 'assets/marimba.mp3',
+      volumeSettings: const VolumeSettings.fixed(volume: .5),
+      notificationSettings: const NotificationSettings(
+        title: 'Alarm example',
+        body: 'Shortcut button alarm with delay of delayInHours hours',
+        icon: 'notification_icon',
+      ),
+      warningNotificationOnKill: Platform.isIOS,
+    );
+
+    await Alarm.set(alarmSettings: alarmSettings);
     // Get the previous cached count and increment it.
     final prefs = await SharedPreferences.getInstance();
     final currentCount = prefs.getInt(countKey) ?? 0;
